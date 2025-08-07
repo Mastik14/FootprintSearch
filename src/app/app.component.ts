@@ -77,6 +77,26 @@ export class AppComponent implements OnInit, AfterViewChecked {
     return colors[index % colors.length];
   }
 
+  public updateVisibleData(): void {
+    this.savePositions();
+
+    const updated: { country: string; carbon: number }[] = [];
+
+    this.emissionsMap.forEach((data, countryName) => {
+      const yearData = data.find((d) => d.year === this.currentYear);
+      if (yearData && yearData.carbon != null) {
+        updated.push({
+          country: countryName,
+          carbon: yearData.carbon,
+        });
+      }
+    });
+
+    this.visibleData = [...updated].sort((a, b) => b.carbon - a.carbon);
+
+    this.smoothUpdateMaxCarbon();
+  }
+
   private getData(): void {
     this.loading = true;
 
@@ -149,26 +169,6 @@ export class AppComponent implements OnInit, AfterViewChecked {
 
       this.updateVisibleData();
     }, 1000);
-  }
-
-  private updateVisibleData(): void {
-    this.savePositions();
-
-    const updated: { country: string; carbon: number }[] = [];
-
-    this.emissionsMap.forEach((data, countryName) => {
-      const yearData = data.find((d) => d.year === this.currentYear);
-      if (yearData && yearData.carbon != null) {
-        updated.push({
-          country: countryName,
-          carbon: yearData.carbon,
-        });
-      }
-    });
-
-    this.visibleData = [...updated].sort((a, b) => b.carbon - a.carbon);
-
-    this.smoothUpdateMaxCarbon();
   }
 
   private savePositions(): void {
