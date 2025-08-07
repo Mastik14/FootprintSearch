@@ -20,6 +20,7 @@ export class AppComponent implements OnInit, AfterViewChecked {
   visibleData: { country: string; carbon: number }[] = [];
 
   currentYear = 1970;
+  minYear = Number.MAX_SAFE_INTEGER;
   maxYear = 2020;
   intervalId: any;
 
@@ -36,9 +37,11 @@ export class AppComponent implements OnInit, AfterViewChecked {
   ngOnInit() {
     const cached = localStorage.getItem("carbon_data");
     if (cached) {
-      const { timestamp, data } = JSON.parse(cached);
+      const { timestamp, data, minYear, maxYear } = JSON.parse(cached);
       if (Date.now() - timestamp < 5 * 60 * 1000) {
         this.emissionsMap = new Map(data);
+        this.minYear = minYear ?? 1970;
+        this.maxYear = maxYear ?? 2020;
         this.startYearInterval();
         return;
       }
@@ -53,9 +56,8 @@ export class AppComponent implements OnInit, AfterViewChecked {
           this.emissionsMap.set(shortName, data);
 
           data.forEach((d) => {
-            if (d.year > this.maxYear) {
-              this.maxYear = d.year;
-            }
+            if (d.year < this.minYear) this.minYear = d.year;
+            if (d.year > this.maxYear) this.maxYear = d.year;
           });
 
           loaded++;
@@ -66,6 +68,8 @@ export class AppComponent implements OnInit, AfterViewChecked {
               JSON.stringify({
                 timestamp: Date.now(),
                 data: serialized,
+                minYear: this.minYear,
+                maxYear: this.maxYear,
               })
             );
 
@@ -77,13 +81,14 @@ export class AppComponent implements OnInit, AfterViewChecked {
   }
 
   startYearInterval() {
+    this.currentYear = this.minYear;
     this.updateVisibleData();
 
     this.intervalId = setInterval(() => {
       this.currentYear++;
 
       if (this.currentYear > this.maxYear) {
-        this.currentYear = 1970; // reset to default year
+        this.currentYear = this.minYear;
       }
 
       this.updateVisibleData();
