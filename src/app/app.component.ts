@@ -117,7 +117,7 @@ export class AppComponent implements OnInit, AfterViewChecked {
       }
     });
 
-    this.visibleData = updated.sort((a, b) => b.carbon - a.carbon);
+    this.visibleData = [...updated].sort((a, b) => b.carbon - a.carbon);
 
     this.smoothUpdateMaxCarbon();
   }
