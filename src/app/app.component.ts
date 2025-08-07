@@ -11,6 +11,7 @@ import { FootprintService } from "../services/footprint.service";
 import type { Country, CountryEmissionsForYear } from "../typings/Country";
 import { StorageService } from "../services/storage.service";
 import { catchError, of } from "rxjs";
+import { colors } from "../constants/constants";
 
 @Component({
   selector: "app-root",
@@ -39,7 +40,7 @@ export class AppComponent implements OnInit, AfterViewChecked {
   private readonly footprintService = inject(FootprintService);
   private readonly storageService = inject(StorageService);
 
-  ngOnInit(): void {
+  public ngOnInit(): void {
     this.loading = true;
 
     const cached = this.storageService.getCache<{
@@ -108,7 +109,15 @@ export class AppComponent implements OnInit, AfterViewChecked {
       });
   }
 
-  startYearInterval() {
+  public getMaxCarbon(): number {
+    return this.displayedMaxCarbon;
+  }
+
+  public getColor(index: number): string {
+    return colors[index % colors.length];
+  }
+
+  private startYearInterval(): void {
     this.currentYear = this.minYear;
     this.updateVisibleData();
 
@@ -130,7 +139,7 @@ export class AppComponent implements OnInit, AfterViewChecked {
     }
   }
 
-  updateVisibleData() {
+  private updateVisibleData(): void {
     this.savePositions();
 
     const updated: { country: string; carbon: number }[] = [];
@@ -150,7 +159,7 @@ export class AppComponent implements OnInit, AfterViewChecked {
     this.smoothUpdateMaxCarbon();
   }
 
-  private savePositions() {
+  private savePositions(): void {
     this.previousRects.clear();
     if (!this.bars) return;
     this.bars.forEach((bar, i) => {
@@ -161,13 +170,14 @@ export class AppComponent implements OnInit, AfterViewChecked {
     });
   }
 
-  private playFlipAnimation() {
+  private playFlipAnimation(): void {
     if (!this.bars) {
       this.animating = false;
       return;
     }
 
     const newRects = new Map<string, DOMRect>();
+
     this.bars.forEach((bar, i) => {
       const key = this.visibleData[i]?.country;
       if (key) {
@@ -202,7 +212,7 @@ export class AppComponent implements OnInit, AfterViewChecked {
     }, 900);
   }
 
-  private smoothUpdateMaxCarbon() {
+  private smoothUpdateMaxCarbon(): void {
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
     }
@@ -221,31 +231,5 @@ export class AppComponent implements OnInit, AfterViewChecked {
     };
 
     step();
-  }
-
-  getMaxCarbon(): number {
-    return this.displayedMaxCarbon;
-  }
-
-  getColor(index: number): string {
-    const colors = [
-      "#FF6384",
-      "#36A2EB",
-      "#FFCE56",
-      "#4BC0C0",
-      "#9966FF",
-      "#FF9F40",
-      "#8BC34A",
-      "#03A9F4",
-      "#E91E63",
-      "#9E9E9E",
-      "#795548",
-      "#00BCD4",
-      "#607D8B",
-      "#CDDC39",
-      "#673AB7",
-      "#3F51B5",
-    ];
-    return colors[index % colors.length];
   }
 }
