@@ -1,22 +1,18 @@
-<div style="text-align: center; margin-bottom: 24px;">
+<div class="description-container">
   <h1>World Population By Year</h1>
   <h2>{{ currentYear }}</h2>
 </div>
 
-<div
-  *ngFor="let entry of visibleData; let i = index; trackBy: trackByCountry"
-  class="chart-row"
-  #barRef
->
+@for (entry of visibleData; track entry.country) {
+<div class="chart-row" #barRef>
   <div class="country-name">{{ entry.country }}</div>
   <div class="bar-container">
     <div
       class="bar-fill"
-      [ngStyle]="{
-        width: (entry.carbon / getMaxCarbon()) * 100 + '%',
-        backgroundColor: getColor(i)
-      }"
+      [style.width.%]="(entry.carbon / getMaxCarbon()) * 100"
+      [style.backgroundColor]="getColor($index)"
     ></div>
   </div>
-  <div class="carbon-value">{{ entry.carbon | number: '1.2-2' }}</div>
+  <div class="carbon-value">{{ entry.carbon | number : "1.2-2" }}</div>
 </div>
+}

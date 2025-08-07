@@ -5,6 +5,7 @@ import {
   QueryList,
   ViewChildren,
   AfterViewChecked,
+  inject,
 } from "@angular/core";
 import { FootprintService } from "../services/footprint.service";
 import type { Country, CountryEmissionsForYear } from "../typings/Country";
@@ -16,29 +17,27 @@ import { StorageService } from "../services/storage.service";
   styleUrls: ["./app.component.css"],
 })
 export class AppComponent implements OnInit, AfterViewChecked {
-  countries: Country[] = [];
-  emissionsMap = new Map<string, CountryEmissionsForYear[]>();
-  visibleData: { country: string; carbon: number }[] = [];
-
-  currentYear = 1970;
-  minYear = Number.MAX_SAFE_INTEGER;
-  maxYear = 2020;
-  intervalId: any;
-
   @ViewChildren("barRef") bars!: QueryList<ElementRef>;
+
+  public intervalId!: ReturnType<typeof setInterval>;
+  public countries: Country[] = [];
+  public emissionsMap = new Map<string, CountryEmissionsForYear[]>();
+  public visibleData: { country: string; carbon: number }[] = [];
+
+  public currentYear = 1970;
+  public minYear = Number.MAX_SAFE_INTEGER;
+  public maxYear = 2020;
+  public displayedMaxCarbon = 1;
 
   private previousRects = new Map<string, DOMRect>();
   private animating = false;
 
-  displayedMaxCarbon = 1;
-  private animationFrameId: any = null;
+  private animationFrameId: number | null = null;
 
-  constructor(
-    private footprintService: FootprintService,
-    private storageService: StorageService
-  ) {}
+  private readonly footprintService = inject(FootprintService);
+  private readonly storageService = inject(StorageService);
 
-  ngOnInit() {
+  public ngOnInit(): void {
     const cached = this.storageService.getCache<{
       data: [string, CountryEmissionsForYear[]][];
       minYear: number;
@@ -222,13 +221,5 @@ export class AppComponent implements OnInit, AfterViewChecked {
       "#3F51B5",
     ];
     return colors[index % colors.length];
-  }
-
-  trackByCountry(index: number, item: { country: string }) {
-    return item.country;
-  }
-
-  trackByCode(index: number, item: any) {
-    return item.countryCode;
   }
 }
