@@ -1,0 +1,7 @@
+<h2>CO₂ выбросы за {{ currentYear }} год</h2>
+
+<ul>
+  <li *ngFor="let entry of visibleData">
+    {{ entry.country }}: {{ entry.carbon | number:'1.2-2' }} т/чел
+  </li>
+</ul>
