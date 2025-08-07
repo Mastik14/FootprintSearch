@@ -58,17 +58,19 @@ export class AppComponent implements OnInit {
   }
 
   updateVisibleData() {
-    this.visibleData = [];
+    const updated: { country: string; carbon: number }[] = [];
 
     this.emissionsMap.forEach((data, countryName) => {
       const yearData = data.find((d) => d.year === this.currentYear);
       if (yearData) {
-        this.visibleData.push({
+        updated.push({
           country: countryName,
           carbon: yearData.carbon,
         });
       }
     });
+
+    this.visibleData = updated.sort((a, b) => b.carbon - a.carbon);
   }
 
   getMaxCarbon(): number {
@@ -89,5 +91,9 @@ export class AppComponent implements OnInit {
       "#9E9E9E",
     ];
     return colors[index % colors.length];
+  }
+
+  trackByCountry(index: number, item: { country: string }) {
+    return item.country;
   }
 }
