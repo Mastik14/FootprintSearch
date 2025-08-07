@@ -8,6 +8,7 @@ import {
 } from "@angular/core";
 import { FootprintService } from "../services/footprint.service";
 import type { Country, CountryEmissionsForYear } from "../typings/Country";
+import { StorageService } from "../services/storage.service";
 
 @Component({
   selector: "app-root",
@@ -32,23 +33,28 @@ export class AppComponent implements OnInit, AfterViewChecked {
   displayedMaxCarbon = 1;
   private animationFrameId: any = null;
 
-  constructor(private footprintService: FootprintService) {}
+  constructor(
+    private footprintService: FootprintService,
+    private storageService: StorageService
+  ) {}
 
   ngOnInit() {
-    const cached = localStorage.getItem("carbon_data");
+    const cached = this.storageService.getCache<{
+      data: [string, CountryEmissionsForYear[]][];
+      minYear: number;
+      maxYear: number;
+    }>();
+
     if (cached) {
-      const { timestamp, data, minYear, maxYear } = JSON.parse(cached);
-      if (Date.now() - timestamp < 5 * 60 * 1000) {
-        this.emissionsMap = new Map(data);
-        this.minYear = minYear ?? 1970;
-        this.maxYear = maxYear ?? 2020;
-        this.startYearInterval();
-        return;
-      }
+      this.emissionsMap = new Map(cached.data);
+      this.minYear = cached.minYear ?? 1970;
+      this.maxYear = cached.maxYear ?? 2020;
+      this.startYearInterval();
+      return;
     }
 
     this.footprintService.getCountries().subscribe((countries) => {
-      this.countries = countries.slice(0, 15); // limit 15 countries to avoid 429 error
+      this.countries = countries.slice(0, 15); // limit to avoid 429 error
       let loaded = 0;
 
       this.countries.forEach(({ countryCode, shortName }) => {
@@ -63,15 +69,12 @@ export class AppComponent implements OnInit, AfterViewChecked {
           loaded++;
           if (loaded === this.countries.length) {
             const serialized = Array.from(this.emissionsMap.entries());
-            localStorage.setItem(
-              "carbon_data",
-              JSON.stringify({
-                timestamp: Date.now(),
-                data: serialized,
-                minYear: this.minYear,
-                maxYear: this.maxYear,
-              })
-            );
+
+            this.storageService.setCache({
+              data: serialized,
+              minYear: this.minYear,
+              maxYear: this.maxYear,
+            });
 
             this.startYearInterval();
           }
