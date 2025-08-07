@@ -10,6 +10,7 @@ import {
 import { FootprintService } from "../services/footprint.service";
 import type { Country, CountryEmissionsForYear } from "../typings/Country";
 import { StorageService } from "../services/storage.service";
+import { catchError, of } from "rxjs";
 
 @Component({
   selector: "app-root",
@@ -28,6 +29,7 @@ export class AppComponent implements OnInit, AfterViewChecked {
   public minYear = Number.MAX_SAFE_INTEGER;
   public maxYear = 2020;
   public displayedMaxCarbon = 1;
+  public loading = false;
 
   private previousRects = new Map<string, DOMRect>();
   private animating = false;
@@ -37,7 +39,9 @@ export class AppComponent implements OnInit, AfterViewChecked {
   private readonly footprintService = inject(FootprintService);
   private readonly storageService = inject(StorageService);
 
-  public ngOnInit(): void {
+  ngOnInit(): void {
+    this.loading = true;
+
     const cached = this.storageService.getCache<{
       data: [string, CountryEmissionsForYear[]][];
       minYear: number;
@@ -48,38 +52,60 @@ export class AppComponent implements OnInit, AfterViewChecked {
       this.emissionsMap = new Map(cached.data);
       this.minYear = cached.minYear ?? 1970;
       this.maxYear = cached.maxYear ?? 2020;
+      this.loading = false;
       this.startYearInterval();
       return;
     }
 
-    this.footprintService.getCountries().subscribe((countries) => {
-      this.countries = countries.slice(0, 15); // limit to avoid 429 error
-      let loaded = 0;
+    this.footprintService
+      .getCountries()
+      .pipe(
+        catchError((err) => {
+          console.error("Error loading countries:", err);
+          this.loading = false;
+          return of([] as Country[]);
+        })
+      )
+      .subscribe((countries) => {
+        if (!countries.length) return;
 
-      this.countries.forEach(({ countryCode, shortName }) => {
-        this.footprintService.getCountry(countryCode).subscribe((data) => {
-          this.emissionsMap.set(shortName, data);
+        this.countries = countries.slice(0, 15);
+        let loaded = 0;
 
-          data.forEach((d) => {
-            if (d.year < this.minYear) this.minYear = d.year;
-            if (d.year > this.maxYear) this.maxYear = d.year;
-          });
+        this.countries.forEach(({ countryCode, shortName }) => {
+          this.footprintService
+            .getCountry(countryCode)
+            .pipe(
+              catchError((err) => {
+                console.error(`Error loading data for ${countryCode}:`, err);
 
-          loaded++;
-          if (loaded === this.countries.length) {
-            const serialized = Array.from(this.emissionsMap.entries());
+                return of([] as CountryEmissionsForYear[]);
+              })
+            )
+            .subscribe((data) => {
+              this.emissionsMap.set(shortName, data);
 
-            this.storageService.setCache({
-              data: serialized,
-              minYear: this.minYear,
-              maxYear: this.maxYear,
+              data.forEach((d) => {
+                if (d.year < this.minYear) this.minYear = d.year;
+                if (d.year > this.maxYear) this.maxYear = d.year;
+              });
+
+              loaded++;
+              if (loaded === this.countries.length) {
+                const serialized = Array.from(this.emissionsMap.entries());
+
+                this.storageService.setCache({
+                  data: serialized,
+                  minYear: this.minYear,
+                  maxYear: this.maxYear,
+                });
+
+                this.loading = false;
+                this.startYearInterval();
+              }
             });
-
-            this.startYearInterval();
-          }
         });
       });
-    });
   }
 
   startYearInterval() {
