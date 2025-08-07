@@ -10,7 +10,8 @@ import {
 import { FootprintService } from "../services/footprint.service";
 import type { Country, CountryEmissionsForYear } from "../typings/Country";
 import { StorageService } from "../services/storage.service";
-import { catchError, of } from "rxjs";
+import { forkJoin, of } from "rxjs";
+import { catchError, switchMap, map, tap } from "rxjs/operators";
 import { colors } from "../constants/constants";
 
 @Component({
@@ -58,55 +59,14 @@ export class AppComponent implements OnInit, AfterViewChecked {
       return;
     }
 
-    this.footprintService
-      .getCountries()
-      .pipe(
-        catchError((err) => {
-          console.error("Error loading countries:", err);
-          this.loading = false;
-          return of([] as Country[]);
-        })
-      )
-      .subscribe((countries) => {
-        if (!countries.length) return;
+    this.getData();
+  }
 
-        this.countries = countries.slice(0, 15);
-        let loaded = 0;
-
-        this.countries.forEach(({ countryCode, shortName }) => {
-          this.footprintService
-            .getCountry(countryCode)
-            .pipe(
-              catchError((err) => {
-                console.error(`Error loading data for ${countryCode}:`, err);
-
-                return of([] as CountryEmissionsForYear[]);
-              })
-            )
-            .subscribe((data) => {
-              this.emissionsMap.set(shortName, data);
-
-              data.forEach((d) => {
-                if (d.year < this.minYear) this.minYear = d.year;
-                if (d.year > this.maxYear) this.maxYear = d.year;
-              });
-
-              loaded++;
-              if (loaded === this.countries.length) {
-                const serialized = Array.from(this.emissionsMap.entries());
-
-                this.storageService.setCache({
-                  data: serialized,
-                  minYear: this.minYear,
-                  maxYear: this.maxYear,
-                });
-
-                this.loading = false;
-                this.startYearInterval();
-              }
-            });
-        });
-      });
+  public ngAfterViewChecked(): void {
+    if (!this.animating && this.previousRects.size > 0) {
+      this.animating = true;
+      this.playFlipAnimation();
+    }
   }
 
   public getMaxCarbon(): number {
@@ -115,6 +75,65 @@ export class AppComponent implements OnInit, AfterViewChecked {
 
   public getColor(index: number): string {
     return colors[index % colors.length];
+  }
+
+  private getData(): void {
+    this.loading = true;
+
+    this.footprintService
+      .getCountries()
+      .pipe(
+        catchError((err: Error) => {
+          console.error("Error loading countries:", err);
+          this.loading = false;
+          return of([] as Country[]);
+        }),
+        switchMap((countries: Country[]) => {
+          if (!countries.length) {
+            this.loading = false;
+            return of(null);
+          }
+
+          this.countries = countries.slice(0, 15);
+
+          const countryDataObservables = this.countries.map(
+            ({ countryCode, shortName }) =>
+              this.footprintService.getCountry(countryCode).pipe(
+                catchError((err) => {
+                  console.error(`Error loading data for ${countryCode}:`, err);
+                  return of([] as CountryEmissionsForYear[]);
+                }),
+                map((data) => ({ shortName, data }))
+              )
+          );
+
+          return forkJoin(countryDataObservables);
+        }),
+        tap((results) => {
+          if (!results) return;
+
+          results.forEach(({ shortName, data }) => {
+            this.emissionsMap.set(shortName, data);
+
+            data.forEach((d) => {
+              if (d.year < this.minYear) this.minYear = d.year;
+              if (d.year > this.maxYear) this.maxYear = d.year;
+            });
+          });
+
+          const serialized = Array.from(this.emissionsMap.entries());
+
+          this.storageService.setCache({
+            data: serialized,
+            minYear: this.minYear,
+            maxYear: this.maxYear,
+          });
+
+          this.loading = false;
+          this.startYearInterval();
+        })
+      )
+      .subscribe();
   }
 
   private startYearInterval(): void {
@@ -130,13 +149,6 @@ export class AppComponent implements OnInit, AfterViewChecked {
 
       this.updateVisibleData();
     }, 1000);
-  }
-
-  ngAfterViewChecked() {
-    if (!this.animating && this.previousRects.size > 0) {
-      this.animating = true;
-      this.playFlipAnimation();
-    }
   }
 
   private updateVisibleData(): void {
@@ -162,6 +174,7 @@ export class AppComponent implements OnInit, AfterViewChecked {
   private savePositions(): void {
     this.previousRects.clear();
     if (!this.bars) return;
+
     this.bars.forEach((bar, i) => {
       const key = this.visibleData[i]?.country;
       if (key) {
@@ -178,23 +191,26 @@ export class AppComponent implements OnInit, AfterViewChecked {
 
     const newRects = new Map<string, DOMRect>();
 
-    this.bars.forEach((bar, i) => {
-      const key = this.visibleData[i]?.country;
-      if (key) {
-        newRects.set(key, bar.nativeElement.getBoundingClientRect());
+    this.bars.forEach((bar) => {
+      const element = bar.nativeElement as HTMLElement;
+      const country = element.getAttribute("data-country");
+      if (country) {
+        newRects.set(country, element.getBoundingClientRect());
       }
     });
 
-    this.bars.forEach((bar, i) => {
-      const key = this.visibleData[i]?.country;
-      const oldRect = this.previousRects.get(key);
-      const newRect = newRects.get(key);
+    this.bars.forEach((bar) => {
+      const element = bar.nativeElement as HTMLElement;
+      const country = element.getAttribute("data-country");
+      if (!country) return;
+
+      const oldRect = this.previousRects.get(country);
+      const newRect = newRects.get(country);
 
       if (oldRect && newRect) {
         const deltaX = oldRect.left - newRect.left;
         const deltaY = oldRect.top - newRect.top;
 
-        const element = bar.nativeElement;
         element.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
         element.style.transition = "transform 0s";
 

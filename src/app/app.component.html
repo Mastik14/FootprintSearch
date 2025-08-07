@@ -1,24 +1,26 @@
-<div *ngIf="loading" class="spinner-container">
+@if (loading) {
+<div class="spinner-container">
   <div class="spinner"></div>
 </div>
-
-<div *ngIf="!loading">
+} @else {
+<div>
   <div class="description-container">
     <h1>World Population By Year</h1>
     <h2>{{ currentYear }}</h2>
   </div>
 
-  @for (entry of visibleData; track entry.country) {
-  <div class="chart-row" #barRef>
+  @for(entry of visibleData; track entry.country; let i = $index) {
+  <div class="chart-row" #barRef [attr.data-country]="entry.country">
     <div class="country-name">{{ entry.country }}</div>
     <div class="bar-container">
       <div
         class="bar-fill"
         [style.width.%]="(entry.carbon / getMaxCarbon()) * 100"
-        [style.backgroundColor]="getColor($index)"
+        [style.backgroundColor]="getColor(i)"
       ></div>
     </div>
     <div class="carbon-value">{{ entry.carbon | number : "1.2-2" }}</div>
   </div>
   }
 </div>
+}
