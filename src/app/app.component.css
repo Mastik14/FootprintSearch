@@ -1,31 +1,29 @@
-.container {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 10px;
-  font-family: Arial, sans-serif;
-}
-
-.bar-row {
+.chart-row {
   display: flex;
   align-items: center;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
 }
 
-.label {
-  flex: 0 0 150px;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.country-name {
+  width: 150px;
+  text-align: left;
 }
 
-.bar {
+.bar-container {
+  flex: 1;
+  background-color: #f0f0f0;
   height: 24px;
-  background-color: #4caf50;
-  color: white;
-  padding: 0 8px;
-  line-height: 24px;
+  margin: 0 12px;
   border-radius: 4px;
-  white-space: nowrap;
   overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.8s ease;
+}
+.carbon-value {
+  width: 80px;
+  text-align: right;
 }

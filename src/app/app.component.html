@@ -1,7 +1,18 @@
-<h2>CO₂ выбросы за {{ currentYear }} год</h2>
+<div style="text-align: center; margin-bottom: 24px;">
+  <h1>World Population By Year</h1>
+  <h2>{{ currentYear }}</h2>
+</div>
 
-<ul>
-  <li *ngFor="let entry of visibleData">
-    {{ entry.country }}: {{ entry.carbon | number:'1.2-2' }} т/чел
-  </li>
-</ul>
+<div *ngFor="let entry of visibleData; let i = index" class="chart-row">
+  <div class="country-name">{{ entry.country }}</div>
+  <div class="bar-container">
+    <div
+      class="bar-fill"
+      [ngStyle]="{
+        width: (entry.carbon / getMaxCarbon()) * 100 + '%',
+        backgroundColor: getColor(i)
+      }"
+    ></div>
+  </div>
+  <div class="carbon-value">{{ entry.carbon | number: '1.2-2' }}</div>
+</div>
