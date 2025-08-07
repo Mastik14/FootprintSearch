@@ -12,6 +12,13 @@
   transition: transform 0.8s ease;
 }
 
+.chart-row {
+  transition: transform 0.8s ease;
+}
+.bar-fill {
+  transition: width 0.8s ease;
+}
+
 .country-name {
   width: 150px;
   text-align: left;
@@ -55,3 +62,16 @@
     height: 18px;
   }
 }
+
+.bar {
+  height: 30px;
+  color: white;
+  line-height: 30px;
+  padding-left: 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: width 0.5s ease, background-color 0.3s ease;
+}
+

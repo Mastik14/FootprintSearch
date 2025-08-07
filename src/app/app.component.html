@@ -3,21 +3,20 @@
   <h2>{{ currentYear }}</h2>
 </div>
 
-<div class="chart-container">
-  <div
-    *ngFor="let entry of visibleData; let i = index; trackBy: trackByCountry"
-    class="chart-row"
-  >
-    <div class="country-name">{{ entry.country }}</div>
-    <div class="bar-container">
-      <div
-        class="bar-fill"
-        [ngStyle]="{
-          width: (entry.carbon / getMaxCarbon()) * 100 + '%',
-          backgroundColor: getColor(i)
-        }"
-      ></div>
-    </div>
-    <div class="carbon-value">{{ entry.carbon | number: '1.2-2' }}</div>
+<div
+  *ngFor="let entry of visibleData; let i = index; trackBy: trackByCountry"
+  class="chart-row"
+  #barRef
+>
+  <div class="country-name">{{ entry.country }}</div>
+  <div class="bar-container">
+    <div
+      class="bar-fill"
+      [ngStyle]="{
+        width: (entry.carbon / getMaxCarbon()) * 100 + '%',
+        backgroundColor: getColor(i)
+      }"
+    ></div>
   </div>
+  <div class="carbon-value">{{ entry.carbon | number: '1.2-2' }}</div>
 </div>
